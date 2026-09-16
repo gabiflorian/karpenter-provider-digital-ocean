@@ -57,6 +57,7 @@ func main() {
 		WithControllers(ctx, controllers.NewControllers(
 			ctx,
 			op.Manager,
+			op.GetClient(),
 			op.EventRecorder,
 			cloudProvider,
 			op.InstanceProvider,

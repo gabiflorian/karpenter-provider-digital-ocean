@@ -18,21 +18,29 @@ import (
 	"context"
 
 	"github.com/awslabs/operatorpkg/controller"
+	"github.com/awslabs/operatorpkg/status"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/karpenter/pkg/cloudprovider"
 	"sigs.k8s.io/karpenter/pkg/events"
 
+	"github.com/digitalocean/karpenter-provider-digital-ocean/pkg/apis/v1alpha1"
+	"github.com/digitalocean/karpenter-provider-digital-ocean/pkg/controllers/nodeclass"
 	"github.com/digitalocean/karpenter-provider-digital-ocean/pkg/providers/instance"
 	"github.com/digitalocean/karpenter-provider-digital-ocean/pkg/providers/instancetype"
 )
 
 func NewControllers(
 	_ context.Context,
-	_ manager.Manager,
+	mgr manager.Manager,
+	kubeClient client.Client,
 	_ events.Recorder,
 	_ cloudprovider.CloudProvider,
 	_ instance.Provider,
 	_ instancetype.Provider,
 ) []controller.Controller {
-	return nil
+	return []controller.Controller{
+		nodeclass.NewController(kubeClient),
+		status.NewController[*v1alpha1.DONodeClass](kubeClient, mgr.GetEventRecorderFor("karpenter")),
+	}
 }

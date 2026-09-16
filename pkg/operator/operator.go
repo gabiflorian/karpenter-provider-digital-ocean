@@ -16,25 +16,59 @@ package operator
 
 import (
 	"context"
+	"fmt"
+	"os"
 
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/karpenter/pkg/operator"
 
-	_ "github.com/digitalocean/karpenter-provider-digital-ocean/pkg/operator/options" // register Injectable flags
+	"github.com/digitalocean/karpenter-provider-digital-ocean/pkg/do"
+	"github.com/digitalocean/karpenter-provider-digital-ocean/pkg/operator/options"
 	"github.com/digitalocean/karpenter-provider-digital-ocean/pkg/providers/instance"
 	"github.com/digitalocean/karpenter-provider-digital-ocean/pkg/providers/instancetype"
 )
 
-// Operator wraps Karpenter core with DigitalOcean stub providers.
 type Operator struct {
 	*operator.Operator
 	InstanceProvider     instance.Provider
 	InstanceTypeProvider instancetype.Provider
+	ClusterID            string
+	ClusterName          string
+	Region               string
 }
 
 func NewOperator(ctx context.Context, op *operator.Operator) (context.Context, *Operator) {
+	opts := options.FromContext(ctx)
+	if opts == nil || opts.DigitalOceanToken == "" {
+		log.FromContext(ctx).Error(fmt.Errorf("DIGITALOCEAN_TOKEN is required"), "missing DigitalOcean token")
+		os.Exit(1)
+	}
+
+	client := do.NewClient(opts.DigitalOceanToken)
+	cluster, err := do.ResolveCluster(ctx, client, opts.ClusterID, opts.ClusterName, op.GetConfig().Host)
+	if err != nil {
+		log.FromContext(ctx).Error(err, "resolving DOKS cluster")
+		os.Exit(1)
+	}
+
+	log.FromContext(ctx).Info("discovered DOKS cluster",
+		"id", cluster.ID,
+		"name", cluster.Name,
+		"region", cluster.RegionSlug,
+	)
+
+	instanceTypeProvider := instancetype.NewDefaultProvider(client, cluster.RegionSlug)
+	if err := instanceTypeProvider.Refresh(ctx); err != nil {
+		log.FromContext(ctx).Error(err, "discovering DOKS instance types")
+		os.Exit(1)
+	}
+
 	return ctx, &Operator{
 		Operator:             op,
-		InstanceProvider:     instance.NewDefaultProvider(),
-		InstanceTypeProvider: instancetype.NewDefaultProvider(),
+		InstanceProvider:     instance.NewDefaultProvider(client, cluster.ID, cluster.RegionSlug),
+		InstanceTypeProvider: instanceTypeProvider,
+		ClusterID:            cluster.ID,
+		ClusterName:          cluster.Name,
+		Region:               cluster.RegionSlug,
 	}
 }

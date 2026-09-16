@@ -30,6 +30,12 @@ const (
 
 	TerminationFinalizer = apis.Group + "/termination"
 	LabelNodeClass       = apis.Group + "/donodeclass"
+
+	// DigitalOcean tags cannot contain '/'. Karpenter-managed DOKS pools use these.
+	TagManaged   = "karpenter:managed"
+	TagNodePool  = "karpenter:nodepool"
+	TagNodeClass = "karpenter:nodeclass"
+	TagSize      = "karpenter:size"
 )
 
 var (

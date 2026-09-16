@@ -4,6 +4,9 @@ go 1.26.6
 
 require (
 	github.com/awslabs/operatorpkg v0.0.0-20260708223819-4da4c353c5fa
+	github.com/digitalocean/godo v1.141.0
+	github.com/samber/lo v1.53.0
+	k8s.io/api v0.36.3
 	k8s.io/apimachinery v0.36.3
 	k8s.io/client-go v0.36.3
 	sigs.k8s.io/controller-runtime v0.24.1
@@ -39,7 +42,10 @@ require (
 	github.com/go-openapi/swag/yamlutils v0.26.0 // indirect
 	github.com/google/cel-go v0.26.0 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mitchellh/hashstructure/v2 v2.0.2 // indirect
@@ -53,7 +59,6 @@ require (
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.20.1 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
-	github.com/samber/lo v1.53.0 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
@@ -78,7 +83,6 @@ require (
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	k8s.io/api v0.36.3 // indirect
 	k8s.io/apiextensions-apiserver v0.36.0 // indirect
 	k8s.io/apiserver v0.36.0 // indirect
 	k8s.io/autoscaler/vertical-pod-autoscaler v1.7.0 // indirect

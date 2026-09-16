@@ -1,0 +1,7 @@
+apiVersion: karpenter.k8s.digitalocean/v1alpha1
+kind: DONodeClass
+metadata:
+  name: default
+spec:
+  tags:
+    - karpenter

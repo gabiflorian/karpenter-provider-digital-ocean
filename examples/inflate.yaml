@@ -1,0 +1,25 @@
+# Pending pods that do not fit existing nodes. Apply this after the NodePool
+# so Karpenter will create a DOKS node pool with count=1.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inflate
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inflate
+  template:
+    metadata:
+      labels:
+        app: inflate
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+        - name: inflate
+          image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
+          resources:
+            requests:
+              cpu: "1"
+              memory: 1Gi
