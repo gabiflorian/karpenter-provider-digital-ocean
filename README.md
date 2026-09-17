@@ -44,3 +44,7 @@ This applies Karpenter + `DONodeClass` CRDs, then starts the controller against 
 | `DIGITALOCEAN_TOKEN` | Personal access token for the DigitalOcean API |
 
 Karpenter-managed pools are tagged `karpenter:managed` plus `karpenter:nodepool:<name>` and `karpenter:size:<slug>`. One pool per (NodePool, size slug); extra nodes scale `count`.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
