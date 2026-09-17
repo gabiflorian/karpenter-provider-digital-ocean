@@ -17,6 +17,8 @@ make build
 
 The binary is written to `bin/karpenter-provider-digital-ocean`.
 
+This provider uses a patched Karpenter core from [`gabiflorian/karpenter`](https://github.com/gabiflorian/karpenter) (`gabiflorian/digital-ocean` branch) via a Go module `replace`.
+
 ## Run
 
 Place a DigitalOcean PAT in `~/.config/doks-tocken.txt` (or set `DOKS_TOKEN_FILE`). `make run` loads it into `DIGITALOCEAN_TOKEN` without printing it.
