@@ -24,7 +24,7 @@ spec:
           operator: In
           values: ["s-2vcpu-4gb"]
   limits:
-    cpu: "4"
+    cpu: "20"
   disruption:
-    consolidationPolicy: WhenEmptyOrUnderutilized
-    consolidateAfter: 1m
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 5m

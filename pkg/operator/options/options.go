@@ -31,7 +31,7 @@ func init() {
 
 type optionsKey struct{}
 
-// Options are DigitalOcean-specific flags. They are parsed into context but unused by the skeleton stubs.
+// Options are DigitalOcean-specific flags parsed into context.
 type Options struct {
 	ClusterName       string
 	ClusterID         string

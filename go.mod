@@ -3,7 +3,7 @@ module github.com/digitalocean/karpenter-provider-digital-ocean
 go 1.26.6
 
 require (
-	github.com/awslabs/operatorpkg v0.0.0-20260708223819-4da4c353c5fa
+	github.com/awslabs/operatorpkg v0.0.0-20260828233137-b2a3ac602e40
 	github.com/digitalocean/godo v1.141.0
 	github.com/samber/lo v1.53.0
 	k8s.io/api v0.36.3
@@ -99,3 +99,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
+
+replace sigs.k8s.io/karpenter => ../karpenter

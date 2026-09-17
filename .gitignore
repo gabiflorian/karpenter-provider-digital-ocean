@@ -17,4 +17,6 @@ bin/
 
 # Local run helper (token + kubeconfig)
 run.sh
+run.sh.out
+run.sh.log
 

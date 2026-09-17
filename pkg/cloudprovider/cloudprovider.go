@@ -93,7 +93,11 @@ func (c *CloudProvider) Delete(ctx context.Context, nodeClaim *karpv1.NodeClaim)
 	if err != nil {
 		return cloudprovider.NewNodeClaimNotFoundError(err)
 	}
-	return c.instanceProvider.Delete(ctx, id)
+	if err := c.instanceProvider.Delete(ctx, id); err != nil {
+		return err
+	}
+	log.FromContext(ctx).Info("deleted DOKS node", "dropletID", id)
+	return nil
 }
 
 func (c *CloudProvider) Get(ctx context.Context, providerID string) (*karpv1.NodeClaim, error) {

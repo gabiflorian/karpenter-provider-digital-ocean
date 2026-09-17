@@ -102,3 +102,23 @@ func TestNeedsScaleWhenPoolIsFullyReady(t *testing.T) {
 		t.Fatal("missing droplet 222")
 	}
 }
+
+func TestPoolTaintsOmitUnregistered(t *testing.T) {
+	got := poolTaints(&karpv1.NodeClaim{
+		Spec: karpv1.NodeClaimSpec{
+			Taints: []corev1.Taint{{Key: "dedicated", Value: "gpu", Effect: corev1.TaintEffectNoSchedule}},
+		},
+	})
+	if len(got) != 1 || got[0].Key != "dedicated" {
+		t.Fatalf("got %+v", got)
+	}
+	if poolTaints(nil) != nil {
+		t.Fatal("expected nil taints without a nodeclaim")
+	}
+	if !hasUnregisteredTaint(&godo.KubernetesNodePool{Taints: []godo.Taint{{
+		Key:    karpv1.UnregisteredTaintKey,
+		Effect: string(corev1.TaintEffectNoExecute),
+	}}}) {
+		t.Fatal("expected to detect unregistered taint")
+	}
+}

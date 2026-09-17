@@ -24,6 +24,7 @@ import (
 
 	"github.com/digitalocean/godo"
 	"github.com/samber/lo"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	karpv1 "sigs.k8s.io/karpenter/pkg/apis/v1"
 	"sigs.k8s.io/karpenter/pkg/cloudprovider"
@@ -88,18 +89,19 @@ func (p *DefaultProvider) Create(ctx context.Context, nodeClass *v1alpha1.DONode
 	defer unlock()
 
 	tags := poolTags(nodePoolName, nodeClass.Name, it.Name, nodeClass.Spec.Tags)
-	pool, known, err := p.ensureCapacity(ctx, nodeClass, nodePoolName, it.Name, tags)
+	pool, known, err := p.ensureCapacity(ctx, nodeClass, nodeClaim, nodePoolName, it.Name, tags)
 	if err != nil {
 		return nil, err
 	}
 	return p.waitForNewNode(ctx, pool.ID, known, it.Name, time.Now().Add(createDeadline))
 }
 
-func (p *DefaultProvider) ensureCapacity(ctx context.Context, nodeClass *v1alpha1.DONodeClass, nodePoolName, size string, tags []string) (*godo.KubernetesNodePool, map[string]struct{}, error) {
+func (p *DefaultProvider) ensureCapacity(ctx context.Context, nodeClass *v1alpha1.DONodeClass, nodeClaim *karpv1.NodeClaim, nodePoolName, size string, tags []string) (*godo.KubernetesNodePool, map[string]struct{}, error) {
 	pool, err := p.findManagedPool(ctx, nodePoolName, size)
 	if err != nil {
 		return nil, nil, err
 	}
+	taints := poolTaints(nodeClaim)
 
 	if pool == nil {
 		created, _, err := p.client.Kubernetes.CreateNodePool(ctx, p.clusterID, &godo.KubernetesNodePoolCreateRequest{
@@ -107,6 +109,7 @@ func (p *DefaultProvider) ensureCapacity(ctx context.Context, nodeClass *v1alpha
 			Size:  size,
 			Count: 1,
 			Tags:  tags,
+			Taints: taints,
 			Labels: map[string]string{
 				karpv1.NodePoolLabelKey: nodePoolName,
 				v1alpha1.LabelNodeClass: nodeClass.Name,
@@ -117,6 +120,10 @@ func (p *DefaultProvider) ensureCapacity(ctx context.Context, nodeClass *v1alpha
 		}
 		log.FromContext(ctx).Info("created DOKS node pool", "poolID", created.ID, "size", size, "nodepool", nodePoolName)
 		return created, dropletIDs(created), nil
+	}
+
+	if err := p.ensurePoolTaints(ctx, pool, taints); err != nil {
+		return nil, nil, err
 	}
 
 	known := dropletIDs(pool)
@@ -151,6 +158,9 @@ func (p *DefaultProvider) waitForNewNode(ctx context.Context, poolID string, kno
 
 		pool, _, err := p.client.Kubernetes.GetNodePool(ctx, p.clusterID, poolID)
 		if err != nil {
+			if do.IsNotFound(err) {
+				return nil, cloudprovider.NewCreateError(err, "NodePoolNotFound", "DOKS node pool disappeared while waiting for a node")
+			}
 			log.FromContext(ctx).Info("waiting for DOKS node", "poolID", poolID, "error", err.Error())
 			select {
 			case <-ctx.Done():
@@ -237,6 +247,28 @@ func (p *DefaultProvider) Delete(ctx context.Context, dropletID string) error {
 		return cloudprovider.NewNodeClaimNotFoundError(fmt.Errorf("droplet %s", dropletID))
 	}
 
+	unlock := p.lock(poolKey(found))
+	defer unlock()
+
+	latest, _, err := p.client.Kubernetes.GetNodePool(ctx, p.clusterID, found.ID)
+	if err != nil {
+		if do.IsNotFound(err) {
+			return cloudprovider.NewNodeClaimNotFoundError(err)
+		}
+		return err
+	}
+	found = latest
+	node = nil
+	for _, n := range found.Nodes {
+		if n != nil && n.DropletID == dropletID {
+			node = n
+			break
+		}
+	}
+	if node == nil {
+		return cloudprovider.NewNodeClaimNotFoundError(fmt.Errorf("droplet %s", dropletID))
+	}
+
 	managedCount := 0
 	for _, n := range found.Nodes {
 		if hasDroplet(n) {
@@ -244,6 +276,7 @@ func (p *DefaultProvider) Delete(ctx context.Context, dropletID string) error {
 		}
 	}
 	if managedCount <= 1 {
+		log.FromContext(ctx).Info("deleting DOKS node pool", "poolID", found.ID, "dropletID", dropletID)
 		_, err = p.client.Kubernetes.DeleteNodePool(ctx, p.clusterID, found.ID)
 		if do.IsNotFound(err) {
 			return cloudprovider.NewNodeClaimNotFoundError(err)
@@ -251,14 +284,18 @@ func (p *DefaultProvider) Delete(ctx context.Context, dropletID string) error {
 		return err
 	}
 
+	log.FromContext(ctx).Info("deleting DOKS node", "poolID", found.ID, "nodeID", node.ID, "dropletID", dropletID, "count", found.Count-1)
 	_, err = p.client.Kubernetes.DeleteNode(ctx, p.clusterID, found.ID, node.ID, &godo.KubernetesNodeDeleteRequest{
-		SkipDrain: false,
+		SkipDrain: true,
 		Replace:   false,
 	})
 	if do.IsNotFound(err) {
 		return cloudprovider.NewNodeClaimNotFoundError(err)
 	}
-	return err
+	if err != nil {
+		return err
+	}
+	return p.ensurePoolCount(ctx, found, found.Count-1)
 }
 
 func (p *DefaultProvider) findManagedPool(ctx context.Context, nodePoolName, size string) (*godo.KubernetesNodePool, error) {
@@ -286,6 +323,42 @@ func (p *DefaultProvider) lock(key string) func() {
 	m := mu.(*sync.Mutex)
 	m.Lock()
 	return m.Unlock
+}
+
+func (p *DefaultProvider) ensurePoolTaints(ctx context.Context, pool *godo.KubernetesNodePool, _ []godo.Taint) error {
+	if hasUnregisteredTaint(pool) {
+		empty := []godo.Taint{}
+		_, _, err := p.client.Kubernetes.UpdateNodePool(ctx, p.clusterID, pool.ID, &godo.KubernetesNodePoolUpdateRequest{
+			Taints: &empty,
+		})
+		if err != nil {
+			return cloudprovider.NewCreateError(err, "NodePoolTaintFailed", "Failed to clear DOKS unregistered taint")
+		}
+		pool.Taints = empty
+		log.FromContext(ctx).Info("cleared DOKS unregistered taint; pool taints are reconciled onto every node", "poolID", pool.ID)
+		return nil
+	}
+	return nil
+}
+
+func (p *DefaultProvider) ensurePoolCount(ctx context.Context, pool *godo.KubernetesNodePool, count int) error {
+	if count < 1 {
+		count = 1
+	}
+	latest, _, err := p.client.Kubernetes.GetNodePool(ctx, p.clusterID, pool.ID)
+	if err != nil {
+		if do.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	if latest.Count <= count {
+		return nil
+	}
+	_, _, err = p.client.Kubernetes.UpdateNodePool(ctx, p.clusterID, pool.ID, &godo.KubernetesNodePoolUpdateRequest{
+		Count: godo.PtrTo(count),
+	})
+	return err
 }
 
 func cheapestCompatible(instanceTypes []*cloudprovider.InstanceType, nodeClaim *karpv1.NodeClaim) (*cloudprovider.InstanceType, error) {
@@ -333,6 +406,56 @@ func needsScale(pool *godo.KubernetesNodePool) bool {
 		return false
 	}
 	return len(dropletIDs(pool)) >= pool.Count
+}
+
+func poolTaints(nodeClaim *karpv1.NodeClaim) []godo.Taint {
+	// DOKS reconciles node-pool taints onto every node continuously, so a
+	// temporary taint such as karpenter.sh/unregistered:NoExecute cannot be
+	// set here — DigitalOcean would put it back and evict workloads.
+	if nodeClaim == nil {
+		return nil
+	}
+	var out []godo.Taint
+	seen := map[string]struct{}{karpv1.UnregisteredTaintKey: {}}
+	for _, t := range append(append([]corev1.Taint{}, nodeClaim.Spec.StartupTaints...), nodeClaim.Spec.Taints...) {
+		if t.Key == "" {
+			continue
+		}
+		if _, ok := seen[t.Key]; ok {
+			continue
+		}
+		seen[t.Key] = struct{}{}
+		out = append(out, godo.Taint{Key: t.Key, Value: t.Value, Effect: string(t.Effect)})
+	}
+	return out
+}
+
+func hasUnregisteredTaint(pool *godo.KubernetesNodePool) bool {
+	if pool == nil {
+		return false
+	}
+	for _, t := range pool.Taints {
+		if t.Key == karpv1.UnregisteredTaintKey && t.Effect == string(corev1.TaintEffectNoExecute) {
+			return true
+		}
+	}
+	return false
+}
+
+func poolKey(pool *godo.KubernetesNodePool) string {
+	np, size := "", ""
+	if pool != nil {
+		size = pool.Size
+		for _, t := range pool.Tags {
+			if strings.HasPrefix(t, v1alpha1.TagNodePool+":") {
+				np = strings.TrimPrefix(t, v1alpha1.TagNodePool+":")
+			}
+			if strings.HasPrefix(t, v1alpha1.TagSize+":") {
+				size = strings.TrimPrefix(t, v1alpha1.TagSize+":")
+			}
+		}
+	}
+	return np + "/" + size
 }
 
 func apiCreateError(err error, reason, message string) error {
