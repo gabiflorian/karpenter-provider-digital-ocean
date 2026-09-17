@@ -7,7 +7,7 @@ Thanks for wanting to help. This provider is a personal project for DigitalOcean
 - Open an issue for bugs, questions, and design discussion.
 - Open a pull request for code. Target `main` from a feature branch; do not push commits onto `main`.
 - Keep PRs focused. Describe what you changed and how you tested it (unit tests, `kubectl` on a DOKS cluster, or both).
-- Every push and pull request runs `make tidy`, `make vet`, `make test`, and `make build` in GitHub Actions. The README badge shows the latest result on `main`.
+- Every push and pull request runs `make tidy`, `make vet`, `make test`, and `make local_build` in GitHub Actions. The README badge shows the latest result on `main`.
 
 ## Build and test
 
@@ -18,8 +18,10 @@ make tidy
 make generate
 make vet
 make test
-make build
+make local_build
 ```
+
+`make build` uses [ko](https://ko.build) to push a container image to Docker Hub. That is not part of CI.
 
 Format Go with `gofmt` (or `go fmt ./...`). If you change `pkg/apis/`, run `make generate` and commit the CRD/DeepCopy output.
 

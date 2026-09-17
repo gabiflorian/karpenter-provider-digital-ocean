@@ -14,10 +14,21 @@ Requires Go 1.26.6 (or a toolchain that can download it).
 make generate
 make tidy
 make vet
-make build
+make local_build
 ```
 
 The binary is written to `bin/karpenter-provider-digital-ocean`.
+
+`make build` compiles with [ko](https://ko.build) and pushes a `linux/amd64` image to Docker Hub (`docker.io/gflorian/karpenter-provider-digital-ocean` by default). Install `ko`, then log in once:
+
+```bash
+go install github.com/ko-build/ko@latest
+# Hub Access Token (Write), not your account password
+echo "$DOCKERHUB_TOKEN" | ko login index.docker.io -u gflorian --password-stdin
+make build
+```
+
+Override the destination with `KO_DOCKER_REPO` and tags with `IMAGE_TAGS`.
 
 This provider uses a patched Karpenter core from [`gabiflorian/karpenter`](https://github.com/gabiflorian/karpenter) (`gabiflorian/digital-ocean` branch) via a Go module `replace`.
 
