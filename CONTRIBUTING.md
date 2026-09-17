@@ -7,6 +7,7 @@ Thanks for wanting to help. This provider is a personal project for DigitalOcean
 - Open an issue for bugs, questions, and design discussion.
 - Open a pull request for code. Target `main` from a feature branch; do not push commits onto `main`.
 - Keep PRs focused. Describe what you changed and how you tested it (unit tests, `kubectl` on a DOKS cluster, or both).
+- Every push and pull request runs `make tidy`, `make vet`, `make test`, and `make build` in GitHub Actions. The README badge shows the latest result on `main`.
 
 ## Build and test
 

@@ -1,5 +1,7 @@
 # Karpenter Provider DigitalOcean
 
+[![CI](https://github.com/gabiflorian/karpenter-provider-digital-ocean/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gabiflorian/karpenter-provider-digital-ocean/actions/workflows/ci.yml?query=branch%3Amain)
+
 Karpenter CloudProvider for [DigitalOcean Kubernetes (DOKS)](https://docs.digitalocean.com/products/kubernetes/).
 
 Capacity is added through **DOKS node pools** (create a pool, then `PUT count`), not self-managed Droplets.
