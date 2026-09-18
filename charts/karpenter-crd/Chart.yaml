@@ -1,0 +1,19 @@
+apiVersion: v2
+name: karpenter-crd
+description: Custom Resource Definitions for the DigitalOcean Karpenter provider.
+type: application
+version: 0.0.1
+appVersion: "0.0.1"
+maintainers:
+  - name: Gavril Ioan Florian
+keywords:
+  - cluster
+  - node
+  - scheduler
+  - autoscaling
+  - lifecycle
+  - digitalocean
+  - doks
+home: https://github.com/gabiflorian/karpenter-provider-digital-ocean
+sources:
+  - https://github.com/gabiflorian/karpenter-provider-digital-ocean

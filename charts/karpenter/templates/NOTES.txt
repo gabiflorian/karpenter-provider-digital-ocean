@@ -1,0 +1,10 @@
+1. CRDs first, then the controller:
+
+   helm upgrade --install karpenter-crd charts/karpenter-crd --namespace kube-system
+   helm upgrade --install karpenter charts/karpenter --namespace kube-system \
+     --set apiToken="<digitalocean-pat>" \
+     --set settings.clusterName="<doks-cluster-name>"
+
+2. Apply a DONodeClass and NodePool (see examples/ in the repo).
+
+3. The controller reads DIGITALOCEAN_TOKEN from Secret {{ include "karpenter.credentialsSecretName" . }}.

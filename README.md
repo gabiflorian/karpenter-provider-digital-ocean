@@ -32,7 +32,20 @@ Override the destination with `KO_DOCKER_REPO` and tags with `IMAGE_TAGS`.
 
 This provider uses a patched Karpenter core from [`gabiflorian/karpenter`](https://github.com/gabiflorian/karpenter) (`gabiflorian/digital-ocean` branch) via a Go module `replace`.
 
-## Run
+## Install with Helm
+
+Install CRDs, then the controller. The controller chart creates a Secret (`DIGITALOCEAN_TOKEN`) and a Deployment.
+
+```bash
+helm upgrade --install karpenter-crd charts/karpenter-crd --namespace kube-system
+helm upgrade --install karpenter charts/karpenter --namespace kube-system \
+  --set apiToken="${DIGITALOCEAN_TOKEN}" \
+  --set settings.clusterName="${CLUSTER_NAME}"
+```
+
+Use `--set credentialsSecretRef=<secret-name>` if the token already lives in a Secret whose key is `DIGITALOCEAN_TOKEN`. Then apply `examples/donodeclass.yaml` and `examples/nodepool.yaml`.
+
+## Run locally
 
 Place a DigitalOcean PAT in `~/.config/doks-tocken.txt` (or set `DOKS_TOKEN_FILE`). `make run` loads it into `DIGITALOCEAN_TOKEN` without printing it.
 

@@ -1,0 +1,99 @@
+# DigitalOcean Personal Access Token (read + write). Required unless credentialsSecretRef is set.
+apiToken: ""
+
+# -- Reference to an existing Secret with key DIGITALOCEAN_TOKEN.
+# When set, the chart does not create a credentials secret.
+credentialsSecretRef: ""
+
+nameOverride: ""
+fullnameOverride: ""
+additionalLabels: {}
+additionalAnnotations: {}
+imagePullPolicy: IfNotPresent
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+additionalClusterRoleRules: []
+
+replicas: 1
+revisionHistoryLimit: 10
+strategy:
+  rollingUpdate:
+    maxUnavailable: 1
+
+podLabels: {}
+podAnnotations: {}
+
+podDisruptionBudget:
+  name: karpenter
+  maxUnavailable: 1
+
+podSecurityContext:
+  fsGroup: 65532
+
+priorityClassName: system-cluster-critical
+terminationGracePeriodSeconds:
+hostNetwork: false
+dnsPolicy: ClusterFirst
+dnsConfig: {}
+
+nodeSelector:
+  kubernetes.io/os: linux
+  kubernetes.io/arch: amd64
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: karpenter.sh/nodepool
+              operator: DoesNotExist
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          topologyKey: kubernetes.io/hostname
+
+topologySpreadConstraints: {}
+
+tolerations:
+  - key: CriticalAddonsOnly
+    operator: Exists
+
+extraVolumes: []
+
+controller:
+  image:
+    repository: docker.io/gflorian/karpenter-provider-digital-ocean
+    tag: latest
+    # digest:
+  env: []
+  envFrom: []
+  resources: {}
+  extraVolumeMounts: []
+  sidecarContainer: []
+  sidecarVolumeMounts: []
+  metrics:
+    port: 8080
+  healthProbe:
+    port: 8081
+
+webhook:
+  enabled: true
+  port: 8443
+  metrics:
+    port: 8001
+
+logLevel: info
+
+settings:
+  batchMaxDuration: 5m
+  batchIdleDuration: 1m
+  clusterName: ""
+  clusterID: ""
+  featureGates:
+    nodeRepair: false
