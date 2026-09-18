@@ -1,3 +1,5 @@
+This release is alpha / proof-of-concept. Not production-ready; you are responsible for node-pool cost and cluster impact.
+
 1. CRDs first, then the controller:
 
    helm upgrade --install karpenter-crd charts/karpenter-crd --namespace kube-system

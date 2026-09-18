@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for wanting to help. This provider is a personal project for DigitalOcean Kubernetes (DOKS).
+Thanks for wanting to help. This provider is a personal **alpha / proof-of-concept** for DigitalOcean Kubernetes (DOKS). It is not production-ready; test on a disposable cluster and expect breaking changes.
 
 ## How to work
 

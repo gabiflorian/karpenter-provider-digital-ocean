@@ -1,5 +1,7 @@
 # Karpenter Provider DigitalOcean
 
+This chart is **alpha / proof-of-concept**. It is not an official DigitalOcean product and is not ready for production. You are responsible for nodes the controller creates and for any cluster impact. See the [repository README](../../README.md).
+
 Install the CRDs, then the controller. The controller chart creates a Secret for `DIGITALOCEAN_TOKEN` and a Deployment.
 
 ```bash

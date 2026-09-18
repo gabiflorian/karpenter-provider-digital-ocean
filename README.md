@@ -6,6 +6,12 @@ Karpenter CloudProvider for [DigitalOcean Kubernetes (DOKS)](https://docs.digita
 
 Capacity is added through **DOKS node pools** (create a pool, then `PUT count`), not self-managed Droplets.
 
+## Status
+
+This is an **alpha / proof-of-concept**. It is a personal project, not an official DigitalOcean product, and it is **not ready for production**.
+
+APIs, Helm charts, and behavior can change without notice. The controller creates and deletes DOKS node pools with your API token; you are responsible for cluster cost, data, and downtime. Use a throwaway cluster, keep node-pool CPU limits low, and run it at your own risk. The [Apache License 2.0](LICENSE) applies: the software is provided “AS IS”, without warranty.
+
 ## Build
 
 Requires Go 1.26.6 (or a toolchain that can download it).
